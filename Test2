@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Billing Statement</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #f4f6f8;
+      color: #222;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 15px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 850px;
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 35px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      color: #0f4c81;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    input,
+    select {
+      padding: 13px;
+      border: 1px solid #d0d7de;
+      border-radius: 10px;
+      outline: none;
+      font-size: 14px;
+      transition: 0.3s;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0f80ff;
+      box-shadow: 0 0 0 3px rgba(15, 128, 255, 0.12);
+    }
+
+    .full {
+      grid-column: 1 / 3;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .generate-btn {
+      background: #0f80ff;
+      color: white;
+    }
+
+    .generate-btn:hover {
+      background: #006bd6;
+      transform: translateY(-2px);
+    }
+
+    .clear-btn {
+      background: #e9eef5;
+      color: #333;
+    }
+
+    .clear-btn:hover {
+      background: #d8e0ea;
+      transform: translateY(-2px);
+    }
+
+    .message {
+      margin-top: 18px;
+      padding: 13px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .success {
+      background: #e8f7ee;
+      color: #1f7a3f;
+      border: 1px solid #b7e5c5;
+    }
+
+    .error {
+      background: #fdeaea;
+      color: #b42318;
+      border: 1px solid #f5b5b5;
+    }
+
+    .bill-card {
+      display: none;
+      margin-top: 30px;
+      padding: 25px;
+      background: #f8fbff;
+      border: 1px solid #d9e7f7;
+      border-radius: 16px;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .bill-card h2 {
+      text-align: center;
+      color: #0f4c81;
+      margin-bottom: 20px;
+    }
+
+    .bill-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px dashed #c5d3e0;
+      font-size: 15px;
+    }
+
+    .bill-line strong {
+      color: #333;
+    }
+
+    .total {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #0f80ff;
+      font-size: 20px;
+      font-weight: bold;
+      color: #0f4c81;
+    }
+
+    .transactions {
+      margin-top: 20px;
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #e0e6ed;
+    }
+
+    .transactions h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #0f4c81;
+    }
+
+    .transactions ul {
+      list-style: none;
+    }
+
+    .transactions li {
+      padding: 8px;
+      background: #f4f6f8;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        padding: 25px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: 1;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Water Billing Statement</h1>
+      <p>Generate and record customer water billing transactions</p>
+    </div>
+
+    <form id="billingForm">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label for="customerName">Customer Name</label>
+          <input type="text" id="customerName" placeholder="Enter customer name" />
+        </div>
+
+        <div class="form-group">
+          <label for="waterConsumption">Water Consumption</label>
+          <input type="number" id="waterConsumption" placeholder="Enter cubic meter used" min="1" />
+        </div>
+
+        <div class="form-group">
+          <label for="customerType">Customer Type</label>
+          <select id="customerType">
+            <option value="">Select customer type</option>
+            <option value="Regular">Regular - No Discount</option>
+            <option value="Senior Citizen">Senior Citizen - 20% Discount</option>
+            <option value="Solo Parent">Solo Parent - 10% Discount</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button type="button" class="generate-btn" onclick="generateBill()">Generate Bill</button>
+        <button type="button" class="clear-btn" onclick="clearForm()">Clear</button>
+      </div>
+
+      <div id="message" class="message"></div>
+    </form>
+
+    <div id="billCard" class="bill-card">
+      <h2>Billing Summary</h2>
+
+      <div class="bill-line">
+        <strong>Customer Name:</strong>
+        <span id="summaryName"></span>
+      </div>
+
+      <div class="bill-line">
+        <strong>Customer Type:</strong>
+        <span id="summaryType"></span>
+      </div>
+
+      <div class="bill-line">
+        <strong>Water Consumption:</strong>
+        <span id="summaryConsumption"></span>
+      </div>
+
+      <div class="bill-line">
+        <strong>Rate Per Cubic Meter:</strong>
+        <span id="summaryRate"></span>
+      </div>
+
+      <div class="bill-line">
+        <strong>Amount Before Discount:</strong>
+        <span id="summarySubtotal"></span>
+      </div>
+
+      <div class="bill-line">
+        <strong>Discount:</strong>
+        <span id="summaryDiscount"></span>
+      </div>
+
+      <div class="bill-line total">
+        <strong>Total Amount:</strong>
+        <span id="summaryTotal"></span>
+      </div>
+
+      <div class="transactions">
+        <h3>Transactions Processed: <span id="transactionCount">0</span></h3>
+        <ul id="transactionList"></ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /*
+      Replace this with your deployed Google Apps Script Web App URL.
+      Example:
+      const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
+    */
+    const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    let transactionCount = 0;
+    let transactions = [];
+
+    function generateBill() {
+      const customerName = document.getElementById("customerName").value.trim();
+      const waterConsumption = Number(document.getElementById("waterConsumption").value);
+      const customerType = document.getElementById("customerType").value;
+
+      if (customerName === "" || waterConsumption <= 0 || customerType === "") {
+        showMessage("Please complete all fields correctly.", "error");
+        return;
+      }
+
+      let rate = getRate(waterConsumption);
+      let subtotal = waterConsumption * rate;
+      let discountRate = getDiscount(customerType);
+      let discountAmount = subtotal * discountRate;
+      let totalAmount = subtotal - discountAmount;
+
+      transactionCount++;
+
+      const billData = {
+        customerName: customerName,
+        waterConsumption: waterConsumption,
+        customerType: customerType,
+        rate: rate,
+        subtotal: subtotal.toFixed(2),
+        discount: discountAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        transactionNumber: transactionCount,
+        date: new Date().toLocaleString()
+      };
+
+      displayBill(billData);
+      addTransaction(billData);
+      sendToGoogleSheet(billData);
+    }
+
+    function getRate(consumption) {
+      let rate;
+
+      if (consumption >= 1 && consumption <= 20) {
+        rate = 25;
+      } else if (consumption >= 21 && consumption <= 30) {
+        rate = 30;
+      } else if (consumption >= 31 && consumption <= 40) {
+        rate = 35;
+      } else if (consumption >= 41) {
+        rate = 45;
+      } else {
+        rate = 0;
+      }
+
+      return rate;
+    }
+
+    function getDiscount(type) {
+      let discount = 0;
+
+      switch (type) {
+        case "Senior Citizen":
+          discount = 0.20;
+          break;
+
+        case "Solo Parent":
+          discount = 0.10;
+          break;
+
+        case "Regular":
+          discount = 0;
+          break;
+
+        default:
+          discount = 0;
+      }
+
+      return discount;
+    }
+
+    function displayBill(data) {
+      document.getElementById("billCard").style.display = "block";
+
+      document.getElementById("summaryName").textContent = data.customerName;
+      document.getElementById("summaryType").textContent = data.customerType;
+      document.getElementById("summaryConsumption").textContent = data.waterConsumption + " cubic meter/s";
+      document.getElementById("summaryRate").textContent = "₱" + data.rate.toFixed(2);
+      document.getElementById("summarySubtotal").textContent = "₱" + data.subtotal;
+      document.getElementById("summaryDiscount").textContent = "₱" + data.discount;
+      document.getElementById("summaryTotal").textContent = "₱" + data.totalAmount;
+
+      showMessage("Billing statement generated successfully.", "success");
+    }
+
+    function addTransaction(data) {
+      transactions.push(data);
+
+      const transactionList = document.getElementById("transactionList");
+      transactionList.innerHTML = "";
+
+      for (let i = 0; i < transactions.length; i++) {
+        const item = document.createElement("li");
+
+        item.textContent =
+          "Transaction #" +
+          transactions[i].transactionNumber +
+          " | " +
+          transactions[i].customerName +
+          " | " +
+          transactions[i].waterConsumption +
+          " cubic meter/s | Total: ₱" +
+          transactions[i].totalAmount;
+
+        transactionList.appendChild(item);
+      }
+
+      document.getElementById("transactionCount").textContent = transactionCount;
+    }
+
+    function sendToGoogleSheet(data) {
+      if (SCRIPT_URL === "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        console.log("Apps Script URL is not yet added.");
+        return;
+      }
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(() => {
+        console.log("Data sent to Google Sheet.");
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+    }
+
+    function showMessage(text, type) {
+      const message = document.getElementById("message");
+
+      message.textContent = text;
+      message.className = "message " + type;
+      message.style.display = "block";
+    }
+
+    function clearForm() {
+      document.getElementById("billingForm").reset();
+      document.getElementById("billCard").style.display = "none";
+      document.getElementById("message").style.display = "none";
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
