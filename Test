@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Water Billing Statement</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #dff3ff, #f4fbff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 30px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      background: white;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 15px 35px rgba(0, 102, 204, 0.18);
+      animation: fadeIn 0.6s ease;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0077cc;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbdce8;
+      border-radius: 10px;
+      outline: none;
+      font-size: 14px;
+      background: #f9fdff;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #0077cc;
+      box-shadow: 0 0 8px rgba(0, 119, 204, 0.18);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 13px;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background: #005fa3;
+      transform: translateY(-2px);
+    }
+
+    .secondary-btn {
+      background: #e9f5ff;
+      color: #0077cc;
+      border: 1px solid #b9dcf5;
+      margin-top: 10px;
+    }
+
+    .secondary-btn:hover {
+      background: #d8efff;
+    }
+
+    .bill-box {
+      margin-top: 25px;
+      background: #eef7ff;
+      border-left: 5px solid #0077cc;
+      padding: 18px;
+      border-radius: 12px;
+      color: #222;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-line;
+      display: none;
+    }
+
+    .message {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .transaction {
+      margin-top: 15px;
+      text-align: center;
+      background: #f0f8ff;
+      padding: 12px;
+      border-radius: 10px;
+      color: #0077cc;
+      font-weight: bold;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+
+      .container {
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Water Billing Statement</h1>
+    <p class="subtitle">Calculate water bills and record transactions using Google Sheets.</p>
+
+    <form id="billingForm">
+      <label for="customerName">Customer Name</label>
+      <input type="text" id="customerName" name="customerName" placeholder="Enter customer name" required />
+
+      <label for="waterConsumption">Water Consumption (Cubic Meter)</label>
+      <input type="number" id="waterConsumption" name="waterConsumption" placeholder="Enter cubic meter used" min="1" required />
+
+      <label for="customerType">Customer Type</label>
+      <select id="customerType" name="customerType" required>
+        <option value="">Select customer type</option>
+        <option value="Regular">Regular</option>
+        <option value="Senior Citizen">Senior Citizen</option>
+        <option value="Solo Parent">Solo Parent</option>
+      </select>
+
+      <button type="button" onclick="generateBill()">Generate Bill</button>
+      <button type="button" class="secondary-btn" onclick="submitToSheet()">Submit Record</button>
+      <button type="reset" class="secondary-btn" onclick="resetBill()">Clear Form</button>
+    </form>
+
+    <div class="transaction">
+      Transactions Processed: <span id="transactionCount">0</span>
+    </div>
+
+    <div class="bill-box" id="billOutput"></div>
+
+    <p class="message" id="message"></p>
+  </div>
+
+  <script>
+    /*
+      ======================================================
+      EDIT THIS PART ONLY
+      ======================================================
+    */
+
+    const scriptURL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    const rates = [
+      {
+        min: 1,
+        max: 20,
+        rate: 25
+      },
+      {
+        min: 21,
+        max: 30,
+        rate: 35
+      },
+      {
+        min: 31,
+        max: 40,
+        rate: 45
+      },
+      {
+        min: 41,
+        max: Infinity,
+        rate: 60
+      }
+    ];
+
+    const discounts = {
+      "Regular": 0,
+      "Senior Citizen": 0.25,
+      "Solo Parent": 0.10
+    };
+
+    /*
+      ======================================================
+      DO NOT EDIT BELOW UNLESS NEEDED
+      ======================================================
+    */
+
+    let transactionCount = 0;
+    let latestBill = null;
+
+    const billOutput = document.getElementById("billOutput");
+    const message = document.getElementById("message");
+    const transactionDisplay = document.getElementById("transactionCount");
+
+    function getRate(consumption) {
+      for (let i = 0; i < rates.length; i++) {
+        if (consumption >= rates[i].min && consumption <= rates[i].max) {
+          return rates[i].rate;
+        }
+      }
+    }
+
+      return 0;
+    }
+
+    function generateBill() {
+      const customerName = document.getElementById("customerName").value.trim();
+      const waterConsumption = parseFloat(document.getElementById("waterConsumption").value);
+      const customerType = document.getElementById("customerType").value;
+
+      if (customerName === "" || isNaN(waterConsumption) || waterConsumption <= 0 || customerType === "") {
+        message.textContent = "Please complete all fields correctly.";
+        message.style.color = "red";
+        billOutput.style.display = "none";
+        return;
+      }
+
+      const rate = getRate(waterConsumption);
+      const amount = waterConsumption * rate;
+      const discountRate = discounts[customerType];
+      const discountAmount = amount * discountRate;
+      const totalAmount = amount - discountAmount;
+
+      latestBill = {
+        customerName: customerName,
+        waterConsumption: waterConsumption,
+        customerType: customerType,
+        rate: rate,
+        amount: amount,
+        discountRate: discountRate,
+        discountAmount: discountAmount,
+        totalAmount: totalAmount
+      };
+
+      billOutput.style.display = "block";
+
+      billOutput.textContent =
+`==============================
+WATER BILLING STATEMENT
+==============================
+Customer Name: ${customerName}
+Customer Type: ${customerType}
+Water Used: ${waterConsumption} cubic meter/s
+Rate per Cubic Meter: ₱${rate.toFixed(2)}
+
+Amount: ₱${amount.toFixed(2)}
+Discount: ₱${discountAmount.toFixed(2)}
+Total Bill: ₱${totalAmount.toFixed(2)}
+==============================`;
+
+      message.textContent = "Bill generated successfully.";
+      message.style.color = "green";
+    }
+
+    function submitToSheet() {
+      if (scriptURL === "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE") {
+        message.textContent = "Please paste your Google Apps Script URL first.";
+        message.style.color = "red";
+        return;
+      }
+
+      if (latestBill === null) {
+        message.textContent = "Please generate a bill before submitting.";
+        message.style.color = "red";
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append("customerName", latestBill.customerName);
+      formData.append("waterConsumption", latestBill.waterConsumption);
+      formData.append("customerType", latestBill.customerType);
+      formData.append("rate", latestBill.rate);
+      formData.append("amount", latestBill.amount.toFixed(2));
+      formData.append("discountRate", (latestBill.discountRate * 100) + "%");
+      formData.append("discountAmount", latestBill.discountAmount.toFixed(2));
+      formData.append("totalAmount", latestBill.totalAmount.toFixed(2));
+
+      message.textContent = "Submitting record...";
+      message.style.color = "#0077cc";
+
+      fetch(scriptURL, {
+        method: "POST",
+        body: formData
+      })
+      .then(function(response) {
+        transactionCount++;
+        transactionDisplay.textContent = transactionCount;
+
+        message.textContent = "Record submitted successfully!";
+        message.style.color = "green";
+      })
+      .catch(function(error) {
+        message.textContent = "Submission failed. Please check your Apps Script deployment.";
+        message.style.color = "red";
+        console.error("Error:", error);
+      });
+    }
+
+    function resetBill() {
+      billOutput.style.display = "none";
+      billOutput.textContent = "";
+      message.textContent = "";
+      latestBill = null;
+    }
+  </script>
+
+</body>
+</html>
