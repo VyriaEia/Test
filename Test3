@@ -1,0 +1,25 @@
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+
+  const data = JSON.parse(e.postData.contents);
+
+  sheet.appendRow([
+    new Date(),
+    data.transactionNumber,
+    data.customerName,
+    data.waterConsumption,
+    data.customerType,
+    data.rate,
+    data.subtotal,
+    data.discount,
+    data.totalAmount
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: "success" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+
+
+Date | Transaction No. | Customer Name | Water Consumption | Customer Type | Rate | Subtotal | Discount | Total Amount
